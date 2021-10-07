@@ -1,0 +1,21 @@
+{
+  "name": "reinhurd/fns-qr-receipt-api-bundle",
+  "description": "Get info about QR receipt from FNS (Russian State Tax Service)",
+  "type": "symfony-bundle",
+  "require": {
+    "php": ">=7.4",
+    "symfony/framework-bundle": "^5.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Reinhurd\\FnsQrReceiptApiBundle\\": "src/"
+    }
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mikhail Bozhenov",
+      "email": "roarus@yandex.ru"
+    }
+  ]
+}
