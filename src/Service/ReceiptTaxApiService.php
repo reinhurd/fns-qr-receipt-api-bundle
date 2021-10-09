@@ -1,6 +1,6 @@
 <?php
 
-namespace Reinhurd\FnsQrReceiptApiBundle;
+namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
 class ReceiptTaxApiService
 {
