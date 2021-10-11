@@ -2,26 +2,36 @@
 
 namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
+use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidReceiptRequestException;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidResponseDataException;
+
 class ReceiptTaxApiService
 {
     private $apiAuthUrl = 'https://openapi.nalog.ru:8090/open-api/AuthService/0.1?wsdl';
     private $apiMasterToken = '/*YOUR MASTER TOKEN HERE*/';
     private $apiRequestUrl = 'https://openapi.nalog.ru:8090/open-api/ais3/KktService/0.1?wsdl';
-    private $proxySettings = '127.0.0.1:1337';
-    private $isProxyEnabled = false;
+    private $curlRequestService;
 
-    private $receiptRequestData = [
-        'sum' => '12500',
-        'date' => '2020-04-23T12:08:00',
-        'fn' => '9287440300077658',
-        'fiscalDocumentId' => '166865',
-        'fiscalSign' => '4264393268'
-    ];
+    public function __construct(CurlRequestService $curlRequestService)
+    {
+        $this->curlRequestService = $curlRequestService;
+    }
 
+    /**
+     * request data example
+     * 'sum' => '12500',
+     * 'date' => '2020-04-23T12:08:00',
+     * 'fn' => '9287440300077658',
+     * 'fiscalDocumentId' => '166865',
+     * 'fiscalSign' => '4264393268'
+     *
+     * @param array $receiptData
+     * @return array
+     */
     public function getReceiptInfo(array $receiptData): array
     {
         if (empty($receiptData)) {
-            $receiptData = $this->receiptRequestData;
+            throw new InvalidReceiptRequestException();
         }
 
         $headerForToken = ["Content-Type: text/xml"];
@@ -41,14 +51,16 @@ class ReceiptTaxApiService
             </soapenv:Envelope>
         ";
 
-        $responseWithTempToken = $this->curlRequest($bodyForToken, $headerForToken, $this->apiAuthUrl);
+        $responseWithTempToken = $this->curlRequestService->curlRequest($bodyForToken, $headerForToken, $this->apiAuthUrl);
 
         $dom = new DOMDocument();
         $dom->loadXML($responseWithTempToken);
         foreach($dom->getElementsByTagName('Token') as $element){
             $tempToken = $element->nodeValue;
         }
-        //todo add exception when tempToken is empty
+        if (empty($tempToken)) {
+            throw new InvalidResponseDataException();
+        }
 
         $bodyForRequestAboutReceipt = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"
                  xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiAsyncMessageConsumerService/types/1.0\">
@@ -77,14 +89,16 @@ class ReceiptTaxApiService
             "Content-Type: text/xml"
         ];
 
-        $responseWithMessageId = $this->curlRequest($bodyForRequestAboutReceipt, $headerWithToken, $this->apiRequestUrl);
+        $responseWithMessageId = $this->curlRequestService->curlRequest($bodyForRequestAboutReceipt, $headerWithToken, $this->apiRequestUrl);
 
         $dom = new DOMDocument();
         $dom->loadXML($responseWithMessageId);
-        foreach($dom->getElementsByTagName('MessageId') as $element ){
+        foreach($dom->getElementsByTagName('MessageId') as $element){
             $messageId = $element->nodeValue;
         }
-        //todo add exception when $messageId is empty
+        if (empty($messageId)) {
+            throw new InvalidResponseDataException();
+        }
 
         $bodyForRequestByMessageId = "
             <soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiAsyncMessageConsumerService/types/1.0\">
@@ -97,52 +111,19 @@ class ReceiptTaxApiService
             </soapenv:Envelope>
         ";
 
-        $responseAboutReceipt = $this->curlRequest($bodyForRequestByMessageId, $headerWithToken, $this->apiRequestUrl);
+        $responseAboutReceipt = $this->curlRequestService->curlRequest($bodyForRequestByMessageId, $headerWithToken, $this->apiRequestUrl);
 
         $dom = new DOMDocument();
         $dom->loadXML($responseAboutReceipt);
 
-        foreach($dom->getElementsByTagName('Code') as $element ){
+        foreach($dom->getElementsByTagName('Code') as $element){
             $code = $element->nodeValue;
         }
-        foreach($dom->getElementsByTagName('Ticket') as $element ){
+        foreach($dom->getElementsByTagName('Ticket') as $element){
             $message = $element->nodeValue;
         }
+        //todo add queue when request is still processing
 
         return json_decode($message, true);
-    }
-
-    private function curlRequest(string $body, array $header, string $apiUrl)
-    {
-        $ch = curl_init();
-
-        if ($this->isProxyEnabled) {
-            curl_setopt($ch, CURLOPT_PROXY, $this->proxySettings);
-            curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
-            curl_setopt ($ch, CURLOPT_PROXYTYPE, 7);
-        }
-
-        curl_setopt_array(
-            $ch,
-            [
-                CURLOPT_URL => $apiUrl,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => "",
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => "POST",
-                CURLOPT_POSTFIELDS =>$body,
-                CURLOPT_HTTPHEADER => $header,
-            ]
-        );
-
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        //todo throw exception if error is not empty
-        curl_close($ch);
-
-        return $response;
     }
 }
