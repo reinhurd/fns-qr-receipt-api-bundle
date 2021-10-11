@@ -4,6 +4,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidReceiptRequestException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidResponseDataException;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ReceiptTaxApiService
 {
@@ -11,10 +12,15 @@ class ReceiptTaxApiService
     private $apiMasterToken = '/*YOUR MASTER TOKEN HERE*/';
     private $apiRequestUrl = 'https://openapi.nalog.ru:8090/open-api/ais3/KktService/0.1?wsdl';
     private $curlRequestService;
+    private $httpClient;
 
-    public function __construct(CurlRequestService $curlRequestService)
-    {
+    public function __construct(
+        CurlRequestService $curlRequestService,
+        HttpClientInterface $httpClient
+    ) {
         $this->curlRequestService = $curlRequestService;
+        //todo replace curl with HttpClientInterface https://symfony.com/doc/current/http_client.html
+        $this->httpClient = $httpClient;
     }
 
     /**
