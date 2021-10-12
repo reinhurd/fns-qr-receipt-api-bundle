@@ -127,7 +127,16 @@ class ReceiptTaxApiService
             </soapenv:Envelope>
         ";
 
-        $responseAboutReceipt = $this->curlRequestService->curlRequest($bodyForRequestByMessageId, $headerWithToken, $this->apiRequestUrl);
+
+        //todo make private function about this
+        for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
+            $responseAboutReceipt = $this->curlRequestService->curlRequest($bodyForRequestByMessageId, $headerWithToken, $this->apiRequestUrl);
+            if (!$this->checkProcessingStatus($responseAboutReceipt)) {
+                sleep(self::LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS);
+            } else {
+                break;
+            }
+        }
 
         $dom = new DOMDocument();
         $dom->loadXML($responseAboutReceipt);
@@ -141,19 +150,6 @@ class ReceiptTaxApiService
         //todo add queue when request is still processing
 
         return json_decode($message, true);
-    }
-
-    private function getLoopRequestAboutReceiptInfo(string $messageId, array $header): string
-    {
-        for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
-            $xmlAnswer = $this->guzzleBuilder->getInfoAboutReceipt($messageId, $header);
-            if (!$this->checkProcessingStatus($xmlAnswer)) {
-                sleep(self::LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS);
-            } else {
-                return $xmlAnswer;
-            }
-        }
-        throw new InvalidResponseDataException();
     }
 
     private function parseXMLAnswer(string $response, string $answerSoapTag): string
