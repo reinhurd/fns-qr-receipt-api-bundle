@@ -8,6 +8,16 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ReceiptTaxApiService
 {
+    const LIMIT_LOOP_RUNS_FOR_ONE_REQUEST = 10;
+    const LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS = 5;
+    const PROCESSING_STATUS = 'PROCESSING';
+    const XML_TAG_TOKEN = 'Token';
+    const XML_TAG_MESSAGE_ID = 'MessageId';
+    const XML_TAG_MESSAGE = 'Message';
+    const XML_TAG_CODE = 'Code';
+    const XML_TAG_TICKET = 'Ticket';
+    const XML_TAG_PROCESSING_STATUS = 'ProcessingStatus';
+
     private $apiAuthUrl = 'https://openapi.nalog.ru:8090/open-api/AuthService/0.1?wsdl';
     private $apiMasterToken = '/*YOUR MASTER TOKEN HERE*/';
     private $apiRequestUrl = 'https://openapi.nalog.ru:8090/open-api/ais3/KktService/0.1?wsdl';
@@ -131,5 +141,49 @@ class ReceiptTaxApiService
         //todo add queue when request is still processing
 
         return json_decode($message, true);
+    }
+
+    private function getLoopRequestAboutReceiptInfo(string $messageId, array $header): string
+    {
+        for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
+            $xmlAnswer = $this->guzzleBuilder->getInfoAboutReceipt($messageId, $header);
+            if (!$this->checkProcessingStatus($xmlAnswer)) {
+                sleep(self::LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS);
+            } else {
+                return $xmlAnswer;
+            }
+        }
+        throw new InvalidResponseDataException();
+    }
+
+    private function parseXMLAnswer(string $response, string $answerSoapTag): string
+    {
+        $dom = $this->loadXMLByDomDocument($response);
+        $element = $dom->getElementsByTagName($answerSoapTag)[0];
+        if ($element === null) {
+            $messageElement = $dom->getElementsByTagName(ReceiptSoapTaxApiService::XML_TAG_MESSAGE)[0];
+
+            throw new InvalidResponseDataException($messageElement);
+        }
+
+        return $element->nodeValue;
+    }
+
+    private function loadXMLByDomDocument(string $xml): DOMDocument
+    {
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+
+        return $dom;
+    }
+
+    private function checkProcessingStatus(string $answer): bool
+    {
+        $processingStatus = $this->parseXMLAnswer($answer, self::XML_TAG_PROCESSING_STATUS);
+        if ($processingStatus === self::PROCESSING_STATUS) {
+            return false;
+        }
+
+        return true;
     }
 }
