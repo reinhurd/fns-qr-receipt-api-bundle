@@ -4,6 +4,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidReceiptRequestException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidResponseDataException;
+use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ReceiptTaxApiService
@@ -23,14 +24,17 @@ class ReceiptTaxApiService
     private $apiRequestUrl = 'https://openapi.nalog.ru:8090/open-api/ais3/KktService/0.1?wsdl';
     private $curlRequestService;
     private $httpClient;
+    private $xmlHelper;
 
     public function __construct(
         CurlRequestService $curlRequestService,
-        HttpClientInterface $httpClient
+        HttpClientInterface $httpClient,
+        XMLHelper $xmlHelper
     ) {
         $this->curlRequestService = $curlRequestService;
         //todo replace curl with HttpClientInterface https://symfony.com/doc/current/http_client.html
         $this->httpClient = $httpClient;
+        $this->xmlHelper = $xmlHelper;
     }
 
     /**
@@ -51,7 +55,67 @@ class ReceiptTaxApiService
         }
 
         $headerForToken = ["Content-Type: text/xml"];
-        $bodyForToken = "
+        $responseWithTempToken = $this
+            ->curlRequestService
+            ->curlRequest(
+                $this->getBodyTemporaryToken(),
+                $headerForToken,
+                $this->apiAuthUrl
+            );
+        $tempToken = $this->xmlHelper->parseXMLByTag($responseWithTempToken, self::XML_TAG_TOKEN);
+
+        $headerWithToken =[
+            "FNS-OpenApi-Token: {$tempToken}",
+            "FNS-OpenApi-UserToken: {$this->apiMasterToken}",
+            "Content-Type: text/xml"
+        ];
+
+        $responseWithMessageId = $this
+            ->curlRequestService
+            ->curlRequest(
+                $this->getBodyWithTokenRequestReceipt($receiptData),
+                $headerWithToken,
+                $this->apiRequestUrl
+            );
+
+        $messageId = $this->xmlHelper->parseXMLByTag($responseWithMessageId, self::XML_TAG_MESSAGE_ID);
+
+        $bodyForRequestByMessageId = $this->getBodyWithMessageIdFinalRequest($messageId);
+
+        //todo make private function about this
+        for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
+            $responseAboutReceipt = $this
+                ->curlRequestService
+                ->curlRequest(
+                    $bodyForRequestByMessageId,
+                    $headerWithToken,
+                    $this->apiRequestUrl
+                );
+            if (!$this->checkProcessingStatus($responseAboutReceipt)) {
+                sleep(self::LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS);
+            } else {
+                break;
+            }
+        }
+
+        $responceWithReceiptInfo = $this->xmlHelper->parseXMLByTag($responseAboutReceipt, self::XML_TAG_TICKET);
+
+        return json_decode($responceWithReceiptInfo, true);
+    }
+
+    private function checkProcessingStatus(string $answer): bool
+    {
+        $processingStatus = $this->xmlHelper->parseXMLByTag($answer, self::XML_TAG_PROCESSING_STATUS);
+        if ($processingStatus === self::PROCESSING_STATUS) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function getBodyTemporaryToken(): string
+    {
+        return "
             <soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiMessageConsumerService/types/1.0\">
             <soapenv:Header/>
             <soapenv:Body>
@@ -66,19 +130,11 @@ class ReceiptTaxApiService
             </soapenv:Body>
             </soapenv:Envelope>
         ";
+    }
 
-        $responseWithTempToken = $this->curlRequestService->curlRequest($bodyForToken, $headerForToken, $this->apiAuthUrl);
-
-        $dom = new DOMDocument();
-        $dom->loadXML($responseWithTempToken);
-        foreach($dom->getElementsByTagName('Token') as $element){
-            $tempToken = $element->nodeValue;
-        }
-        if (empty($tempToken)) {
-            throw new InvalidResponseDataException();
-        }
-
-        $bodyForRequestAboutReceipt = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"
+    private function getBodyWithTokenRequestReceipt(array $receiptData): string
+    {
+        return "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"
                  xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiAsyncMessageConsumerService/types/1.0\">
                 <soapenv:Header/>
                 <soapenv:Body>
@@ -98,25 +154,11 @@ class ReceiptTaxApiService
                     </ns:SendMessageRequest>
                 </soapenv:Body>
             </soapenv:Envelope>";
+    }
 
-        $headerWithToken =[
-            "FNS-OpenApi-Token: {$tempToken}",
-            "FNS-OpenApi-UserToken: {$this->apiMasterToken}",
-            "Content-Type: text/xml"
-        ];
-
-        $responseWithMessageId = $this->curlRequestService->curlRequest($bodyForRequestAboutReceipt, $headerWithToken, $this->apiRequestUrl);
-
-        $dom = new DOMDocument();
-        $dom->loadXML($responseWithMessageId);
-        foreach($dom->getElementsByTagName('MessageId') as $element){
-            $messageId = $element->nodeValue;
-        }
-        if (empty($messageId)) {
-            throw new InvalidResponseDataException();
-        }
-
-        $bodyForRequestByMessageId = "
+    private function getBodyWithMessageIdFinalRequest(string $messageId): string
+    {
+        return "
             <soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiAsyncMessageConsumerService/types/1.0\">
             <soapenv:Header/>
             <soapenv:Body>
@@ -126,60 +168,5 @@ class ReceiptTaxApiService
             </soapenv:Body>
             </soapenv:Envelope>
         ";
-
-
-        //todo make private function about this
-        for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
-            $responseAboutReceipt = $this->curlRequestService->curlRequest($bodyForRequestByMessageId, $headerWithToken, $this->apiRequestUrl);
-            if (!$this->checkProcessingStatus($responseAboutReceipt)) {
-                sleep(self::LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS);
-            } else {
-                break;
-            }
-        }
-
-        $dom = new DOMDocument();
-        $dom->loadXML($responseAboutReceipt);
-
-        foreach($dom->getElementsByTagName('Code') as $element){
-            $code = $element->nodeValue;
-        }
-        foreach($dom->getElementsByTagName('Ticket') as $element){
-            $message = $element->nodeValue;
-        }
-        //todo add queue when request is still processing
-
-        return json_decode($message, true);
-    }
-
-    private function parseXMLAnswer(string $response, string $answerSoapTag): string
-    {
-        $dom = $this->loadXMLByDomDocument($response);
-        $element = $dom->getElementsByTagName($answerSoapTag)[0];
-        if ($element === null) {
-            $messageElement = $dom->getElementsByTagName(ReceiptSoapTaxApiService::XML_TAG_MESSAGE)[0];
-
-            throw new InvalidResponseDataException($messageElement);
-        }
-
-        return $element->nodeValue;
-    }
-
-    private function loadXMLByDomDocument(string $xml): DOMDocument
-    {
-        $dom = new DOMDocument();
-        $dom->loadXML($xml);
-
-        return $dom;
-    }
-
-    private function checkProcessingStatus(string $answer): bool
-    {
-        $processingStatus = $this->parseXMLAnswer($answer, self::XML_TAG_PROCESSING_STATUS);
-        if ($processingStatus === self::PROCESSING_STATUS) {
-            return false;
-        }
-
-        return true;
     }
 }
