@@ -3,8 +3,8 @@
 namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidReceiptRequestException;
-use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidResponseDataException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ReceiptTaxApiService
@@ -19,22 +19,28 @@ class ReceiptTaxApiService
     const XML_TAG_TICKET = 'Ticket';
     const XML_TAG_PROCESSING_STATUS = 'ProcessingStatus';
 
-    private $apiAuthUrl = 'https://openapi.nalog.ru:8090/open-api/AuthService/0.1?wsdl';
-    private $apiMasterToken = '/*YOUR MASTER TOKEN HERE*/';
-    private $apiRequestUrl = 'https://openapi.nalog.ru:8090/open-api/ais3/KktService/0.1?wsdl';
+    private $apiAuthUrl;
+    private $apiRequestUrl;
+    private $apiMasterToken;
     private $curlRequestService;
     private $httpClient;
+    private $parameterBag;
     private $xmlHelper;
 
     public function __construct(
         CurlRequestService $curlRequestService,
         HttpClientInterface $httpClient,
+        ParameterBagInterface $parameterBag,
         XMLHelper $xmlHelper
     ) {
         $this->curlRequestService = $curlRequestService;
         //todo replace curl with HttpClientInterface https://symfony.com/doc/current/http_client.html
         $this->httpClient = $httpClient;
+        $this->parameterBag = $parameterBag;
         $this->xmlHelper = $xmlHelper;
+        $this->apiAuthUrl = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.api.auth_url');
+        $this->apiRequestUrl = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.api.request_url');
+        $this->apiMasterToken = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.master_token');
     }
 
     /**
