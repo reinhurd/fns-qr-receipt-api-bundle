@@ -22,20 +22,16 @@ class ReceiptTaxApiService
     private $apiAuthUrl;
     private $apiRequestUrl;
     private $apiMasterToken;
-    private $curlRequestService;
-    private $httpClient;
+    private $httpClientRequestService;
     private $parameterBag;
     private $xmlHelper;
 
     public function __construct(
-        CurlRequestService $curlRequestService,
-        HttpClientInterface $httpClient,
+        HttpClientRequestService $httpClientRequestService,
         ParameterBagInterface $parameterBag,
         XMLHelper $xmlHelper
     ) {
-        $this->curlRequestService = $curlRequestService;
-        //todo replace curl with HttpClientInterface https://symfony.com/doc/current/http_client.html
-        $this->httpClient = $httpClient;
+        $this->httpClientRequestService = $httpClientRequestService;
         $this->parameterBag = $parameterBag;
         $this->xmlHelper = $xmlHelper;
         $this->apiAuthUrl = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.api.auth_url');
@@ -62,7 +58,7 @@ class ReceiptTaxApiService
 
         $headerForToken = ["Content-Type: text/xml"];
         $responseWithTempToken = $this
-            ->curlRequestService
+            ->httpClientRequestService
             ->curlRequest(
                 $this->getBodyTemporaryToken(),
                 $headerForToken,
@@ -77,7 +73,7 @@ class ReceiptTaxApiService
         ];
 
         $responseWithMessageId = $this
-            ->curlRequestService
+            ->httpClientRequestService
             ->curlRequest(
                 $this->getBodyWithTokenRequestReceipt($receiptData),
                 $headerWithToken,
@@ -91,7 +87,7 @@ class ReceiptTaxApiService
         //todo make private function about this
         for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
             $responseAboutReceipt = $this
-                ->curlRequestService
+                ->httpClientRequestService
                 ->curlRequest(
                     $bodyForRequestByMessageId,
                     $headerWithToken,
