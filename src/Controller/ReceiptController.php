@@ -2,6 +2,7 @@
 
 namespace Reinhurd\FnsQrReceiptApiBundle\Controller;
 
+use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Reinhurd\FnsQrReceiptApiBundle\Service\ReceiptTaxApiService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,14 +22,13 @@ class ReceiptController extends AbstractController
      */
     public function info(Request $request): JsonResponse
     {
-        //todo create mapper
-        $receiptRequestData = [];
+        $receiptRequestData = new ReceiptRequestDTO();
 
-        $receiptRequestData['sum'] = $request->get('sum');
-        $receiptRequestData['date'] = $request->get('date');
-        $receiptRequestData['fn'] = $request->get('fn');
-        $receiptRequestData['fiscalDocumentId'] = $request->get('fiscalDocumentId');
-        $receiptRequestData['fiscalSign'] = $request->get('fiscalSign');
+        $receiptRequestData->setSum($request->get('sum'));
+        $receiptRequestData->setDate($request->get('date'));
+        $receiptRequestData->setFiscalNumber($request->get('fn'));
+        $receiptRequestData->setFiscalDocumentId($request->get('fiscalDocumentId'));
+        $receiptRequestData->setFiscalSign($request->get('fiscalSign'));
 
         $infoAboutReceipt = $this->taxApiService->getReceiptInfo($receiptRequestData);
 

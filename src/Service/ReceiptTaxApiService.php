@@ -4,6 +4,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidReceiptRequestException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -39,23 +40,8 @@ class ReceiptTaxApiService
         $this->apiMasterToken = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.master_token');
     }
 
-    /**
-     * request data example
-     * 'sum' => '12500',
-     * 'date' => '2020-04-23T12:08:00',
-     * 'fn' => '9287440300077658',
-     * 'fiscalDocumentId' => '166865',
-     * 'fiscalSign' => '4264393268'
-     *
-     * @param array $receiptData
-     * @return array
-     */
-    public function getReceiptInfo(array $receiptData): array
+    public function getReceiptInfo(ReceiptRequestDTO $receiptData): array
     {
-        if (empty($receiptData)) {
-            throw new InvalidReceiptRequestException();
-        }
-
         $headerForToken = ["Content-Type: text/xml"];
         $responseWithTempToken = $this
             ->httpClientRequestService
@@ -84,13 +70,20 @@ class ReceiptTaxApiService
 
         $bodyForRequestByMessageId = $this->getBodyWithMessageIdFinalRequest($messageId);
 
-        //todo make private function about this
+        $responseAboutReceipt = $this->loopRequestAboutReceipt($bodyForRequestByMessageId, $headerWithToken);
+        $responceWithReceiptInfo = $this->xmlHelper->parseXMLByTag($responseAboutReceipt, self::XML_TAG_TICKET);
+
+        return json_decode($responceWithReceiptInfo, true);
+    }
+
+    private function loopRequestAboutReceipt(string $body, array $header): string
+    {
         for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
             $responseAboutReceipt = $this
                 ->httpClientRequestService
                 ->curlRequest(
-                    $bodyForRequestByMessageId,
-                    $headerWithToken,
+                    $body,
+                    $header,
                     $this->apiRequestUrl
                 );
             if (!$this->checkProcessingStatus($responseAboutReceipt)) {
@@ -100,9 +93,7 @@ class ReceiptTaxApiService
             }
         }
 
-        $responceWithReceiptInfo = $this->xmlHelper->parseXMLByTag($responseAboutReceipt, self::XML_TAG_TICKET);
-
-        return json_decode($responceWithReceiptInfo, true);
+        return $responseAboutReceipt;
     }
 
     private function checkProcessingStatus(string $answer): bool
@@ -134,7 +125,7 @@ class ReceiptTaxApiService
         ";
     }
 
-    private function getBodyWithTokenRequestReceipt(array $receiptData): string
+    private function getBodyWithTokenRequestReceipt(ReceiptRequestDTO $receiptData): string
     {
         return "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"
                  xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiAsyncMessageConsumerService/types/1.0\">
@@ -144,12 +135,12 @@ class ReceiptTaxApiService
                         <ns:Message>
                             <tns:GetTicketRequest xmlns:tns=\"urn://x-artefacts-gnivc-ru/ais3/kkt/KktTicketService/types/1.0\">
                                 <tns:GetTicketInfo>
-                                    <tns:Sum>{$receiptData['sum']}</tns:Sum>
-                                    <tns:Date>{$receiptData['date']}</tns:Date>
-                                    <tns:Fn>{$receiptData['fn']}</tns:Fn>
+                                    <tns:Sum>{$receiptData->getSum()}</tns:Sum>
+                                    <tns:Date>{$receiptData->getDate()}</tns:Date>
+                                    <tns:Fn>{$receiptData->getFiscalNumber()}</tns:Fn>
                                     <tns:TypeOperation>1</tns:TypeOperation>
-                                    <tns:FiscalDocumentId>{$receiptData['fiscalDocumentId']}</tns:FiscalDocumentId>
-                                    <tns:FiscalSign>{$receiptData['fiscalSign']}</tns:FiscalSign>
+                                    <tns:FiscalDocumentId>{$receiptData->getFiscalDocumentId()}</tns:FiscalDocumentId>
+                                    <tns:FiscalSign>{$receiptData->getFiscalSign()}</tns:FiscalSign>
                                 </tns:GetTicketInfo>
                             </tns:GetTicketRequest>
                         </ns:Message>
