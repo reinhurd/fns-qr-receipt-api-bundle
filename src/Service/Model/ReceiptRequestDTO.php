@@ -2,7 +2,7 @@
 
 namespace Reinhurd\FnsQrReceiptApiBundle\Service\Model;
 
-use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidReceiptRequestException;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidRequestException;
 
 /**
  * Class ReceiptRequestDTO
@@ -25,7 +25,7 @@ class ReceiptRequestDTO
     public function setSum(string $sum): void
     {
         if (empty($sum)) {
-            throw new InvalidReceiptRequestException('Sum is empty');
+            throw new InvalidRequestException('Sum is empty');
         }
         $this->sum = $sum;
     }
@@ -33,7 +33,7 @@ class ReceiptRequestDTO
     public function setDate(string $date): void
     {
         if (empty($date)) {
-            throw new InvalidReceiptRequestException('Date is empty');
+            throw new InvalidRequestException('Date is empty');
         }
         $this->date = $date;
     }
@@ -41,7 +41,7 @@ class ReceiptRequestDTO
     public function setFiscalNumber(string $fiscalNumber): void
     {
         if (empty($fiscalNumber)) {
-            throw new InvalidReceiptRequestException('fiscalNumber is empty');
+            throw new InvalidRequestException('fiscalNumber is empty');
         }
         $this->fiscalNumber = $fiscalNumber;
     }
@@ -49,7 +49,7 @@ class ReceiptRequestDTO
     public function setFiscalSign(string $fiscalSign): void
     {
         if (empty($fiscalSign)) {
-            throw new InvalidReceiptRequestException('fiscalSign is empty');
+            throw new InvalidRequestException('fiscalSign is empty');
         }
         $this->fiscalSign = $fiscalSign;
     }
@@ -57,7 +57,7 @@ class ReceiptRequestDTO
     public function setFiscalDocumentId(string $fiscalDocumentId): void
     {
         if (empty($fiscalDocumentId)) {
-            throw new InvalidReceiptRequestException('fiscalDocumentId is empty');
+            throw new InvalidRequestException('fiscalDocumentId is empty');
         }
         $this->fiscalDocumentId = $fiscalDocumentId;
     }

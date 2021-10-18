@@ -4,7 +4,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service\Exception;
 
 use \Exception;
 
-class InvalidReceiptRequestException extends Exception
+class InvalidRequestException extends Exception
 {
 
 }

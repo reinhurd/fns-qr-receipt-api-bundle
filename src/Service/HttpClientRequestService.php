@@ -2,18 +2,26 @@
 
 namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class HttpClientRequestService
 {
-    private $proxySettings = '127.0.0.1:1337';
-    private $isProxyEnabled = false;
     private $httpClient;
+    private $isProxyEnabled;
+    private $parameterBag;
+    private $proxySettings;
 
     public function __construct(
-        HttpClientInterface $httpClient
+        HttpClientInterface $httpClient,
+        ParameterBagInterface $parameterBag
     ) {
         $this->httpClient = $httpClient;
+        $this->parameterBag = $parameterBag;
+        $this->isProxyEnabled = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.proxy.enable');
+        if ($this->isProxyEnabled) {
+            $this->proxySettings = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.proxy.settings');
+        }
     }
 
     public function curlRequest(string $body, array $header, string $apiUrl): string

@@ -2,7 +2,7 @@
 
 namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
-use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidReceiptRequestException;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidRequestException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
