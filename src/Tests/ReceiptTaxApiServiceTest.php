@@ -8,7 +8,6 @@ use Reinhurd\FnsQrReceiptApiBundle\Service\HttpClientRequestService;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Reinhurd\FnsQrReceiptApiBundle\Service\ReceiptTaxApiService;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use function PHPUnit\Framework\atLeast;
 
 class ReceiptTaxApiServiceTest extends TestCase
 {
@@ -48,13 +47,13 @@ class ReceiptTaxApiServiceTest extends TestCase
 
         $this
             ->httpClientRequestService
-            ->expects(atLeast(3))
+            ->expects(self::atLeast(3))
             ->method('curlRequest')
             ->willReturn($curlResponseMock);
 
         $this
             ->xmlHelper
-            ->expects(atLeast(3))
+            ->expects(self::atLeast(3))
             ->method('parseXMLByTag')
             ->willReturn($expectedResponceJson);
 
