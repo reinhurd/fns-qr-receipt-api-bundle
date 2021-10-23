@@ -12,8 +12,8 @@
     }
   },
   "scripts": {
-    "test": ".\\vendor\\bin\\phpunit --bootstrap vendor/autoload.php src/Tests/",
-    "testdox": ".\\vendor\\bin\\phpunit --bootstrap vendor/autoload.php --testdox --colors=always src/Tests/"
+    "test": "./vendor/bin/phpunit --bootstrap vendor/autoload.php src/Tests/",
+    "testdox": "./vendor/bin/phpunit --bootstrap vendor/autoload.php --testdox --colors=always src/Tests/"
   },
   "license": "MIT",
   "authors": [
