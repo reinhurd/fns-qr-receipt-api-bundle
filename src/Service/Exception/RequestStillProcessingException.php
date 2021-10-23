@@ -4,7 +4,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service\Exception;
 
 use Exception;
 
-class InvalidResponseDataException extends Exception
+class RequestStillProcessingException extends Exception
 {
 
 }

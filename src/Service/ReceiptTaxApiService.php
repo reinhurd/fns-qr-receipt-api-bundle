@@ -2,14 +2,15 @@
 
 namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
-use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidRequestException;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestedReceiptNotExistException;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestStillProcessingException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ReceiptTaxApiService
 {
+    const HTTP_CODE_OK = 200;
     const LIMIT_LOOP_RUNS_FOR_ONE_REQUEST = 10;
     const LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS = 5;
     const PROCESSING_STATUS = 'PROCESSING';
@@ -71,11 +72,28 @@ class ReceiptTaxApiService
         $bodyForRequestByMessageId = $this->getBodyWithMessageIdFinalRequest($messageId);
 
         $responseAboutReceipt = $this->loopRequestAboutReceipt($bodyForRequestByMessageId, $headerWithToken);
+        if (!$this->validateReceiptExists($responseAboutReceipt)) {
+            //todo save info from fns about requested receipt
+            throw new RequestedReceiptNotExistException();
+        }
         $responceWithReceiptInfo = $this->xmlHelper->parseXMLByTag($responseAboutReceipt, self::XML_TAG_TICKET);
 
         return json_decode($responceWithReceiptInfo, true);
     }
 
+    private function validateReceiptExists(string $receiptResonse): bool
+    {
+        $responseCode = $this->xmlHelper->parseXMLByTag($receiptResonse, self::XML_TAG_CODE);
+        if ((int)$responseCode !== self::HTTP_CODE_OK) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param string[] $header
+     */
     private function loopRequestAboutReceipt(string $body, array $header): string
     {
         for ($i = 0; $i < self::LIMIT_LOOP_RUNS_FOR_ONE_REQUEST; $i++) {
@@ -93,6 +111,12 @@ class ReceiptTaxApiService
             }
         }
 
+        //final validate after end of loops run
+        if (!$this->checkProcessingStatus($responseAboutReceipt)) {
+            //todo for case with long processing receipt we need queue service or else
+            throw new RequestStillProcessingException();
+        }
+
         return $responseAboutReceipt;
     }
 
@@ -108,21 +132,21 @@ class ReceiptTaxApiService
 
     private function getBodyTemporaryToken(): string
     {
-        return "
-            <soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiMessageConsumerService/types/1.0\">
+        return "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" 
+            xmlns:ns=\"urn://x-artefacts-gnivc-ru/inplat/servin/OpenApiMessageConsumerService/types/1.0\">
             <soapenv:Header/>
-            <soapenv:Body>
-            <ns:GetMessageRequest>
-            <ns:Message>\n<tns:AuthRequest xmlns:tns=\"urn://x-artefacts-gnivc-ru/ais3/kkt/AuthService/types/1.0\">
-            <tns:AuthAppInfo>
-            <tns:MasterToken>{$this->apiMasterToken}</tns:MasterToken>
-            </tns:AuthAppInfo>
-            </tns:AuthRequest>
-            </ns:Message>
-            </ns:GetMessageRequest>
-            </soapenv:Body>
-            </soapenv:Envelope>
-        ";
+                <soapenv:Body>
+                    <ns:GetMessageRequest>
+                        <ns:Message>\n
+                            <tns:AuthRequest xmlns:tns=\"urn://x-artefacts-gnivc-ru/ais3/kkt/AuthService/types/1.0\">
+                                <tns:AuthAppInfo>
+                                <tns:MasterToken>{$this->apiMasterToken}</tns:MasterToken>
+                                </tns:AuthAppInfo>
+                            </tns:AuthRequest>
+                        </ns:Message>
+                    </ns:GetMessageRequest>
+                </soapenv:Body>
+            </soapenv:Envelope>";
     }
 
     private function getBodyWithTokenRequestReceipt(ReceiptRequestDTO $receiptData): string

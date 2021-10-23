@@ -35,6 +35,7 @@ class ReceiptTaxApiServiceTest extends TestCase
 
     public function testGetReceiptInfo()
     {
+        $expectedHttpCode = '200';
         $receiptMockDto = new ReceiptRequestDTO();
         $receiptMockDto->setFiscalSign(self::STUB_DATA);
         $receiptMockDto->setFiscalDocumentId(self::STUB_DATA);
@@ -53,9 +54,23 @@ class ReceiptTaxApiServiceTest extends TestCase
 
         $this
             ->xmlHelper
-            ->expects(self::atLeast(3))
             ->method('parseXMLByTag')
-            ->willReturn($expectedResponceJson);
+            ->withConsecutive(
+                [$curlResponseMock, ReceiptTaxApiService::XML_TAG_TOKEN],
+                [$curlResponseMock, ReceiptTaxApiService::XML_TAG_MESSAGE_ID],
+                [$curlResponseMock, ReceiptTaxApiService::XML_TAG_PROCESSING_STATUS],
+                [$curlResponseMock, ReceiptTaxApiService::XML_TAG_PROCESSING_STATUS],
+                [$curlResponseMock, ReceiptTaxApiService::XML_TAG_CODE],
+                [$curlResponseMock, ReceiptTaxApiService::XML_TAG_TICKET]
+            )
+            ->willReturnOnConsecutiveCalls(
+                $expectedResponceJson,
+                $expectedResponceJson,
+                $expectedResponceJson,
+                $expectedResponceJson,
+                $expectedHttpCode,
+                $expectedResponceJson,
+            );
 
         $result = $this->service->getReceiptInfo($receiptMockDto);
 

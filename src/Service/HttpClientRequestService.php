@@ -7,6 +7,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class HttpClientRequestService
 {
+    private const DEFAULT_REQUEST_METHOD = 'POST';
     private $httpClient;
     private $isProxyEnabled;
     private $parameterBag;
@@ -47,13 +48,13 @@ class HttpClientRequestService
                 CURLOPT_TIMEOUT => 0,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => "POST",
+                CURLOPT_CUSTOMREQUEST => self::DEFAULT_REQUEST_METHOD,
                 CURLOPT_POSTFIELDS =>$body,
                 CURLOPT_HTTPHEADER => $header,
             ]
         );
 
-        $response = $this->httpClient->request('POST', $apiUrl, [
+        $response = $this->httpClient->request(self::DEFAULT_REQUEST_METHOD, $apiUrl, [
             'max_redirects' => 10,
             'extra' => [
                 'curl' => $extraParam,
