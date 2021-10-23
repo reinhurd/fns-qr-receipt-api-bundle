@@ -1,3 +1,5 @@
+![example workflow](https://github.com/reinhurd/fns-qr-receipt-api-bundle/actions/workflows/php.yml/badge.svg)
+
 Installation
 ============
 
