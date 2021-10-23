@@ -4,7 +4,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestedReceiptNotExistException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestStillProcessingException;
-use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Helpers\XMLHelper;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 

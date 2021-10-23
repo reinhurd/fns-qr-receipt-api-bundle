@@ -5,7 +5,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Test;
 use DOMDocument;
 use DOMNodeList;
 use PHPUnit\Framework\TestCase;
-use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Helpers\XMLHelper;
 
 class XMLHelperTest extends TestCase
 {

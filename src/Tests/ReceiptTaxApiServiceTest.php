@@ -3,7 +3,7 @@
 namespace Reinhurd\FnsQrReceiptApiBundle\Test;
 
 use PHPUnit\Framework\TestCase;
-use Reinhurd\FnsQrReceiptApiBundle\Service\helpers\XMLHelper;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Helpers\XMLHelper;
 use Reinhurd\FnsQrReceiptApiBundle\Service\HttpClientRequestService;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Reinhurd\FnsQrReceiptApiBundle\Service\ReceiptTaxApiService;

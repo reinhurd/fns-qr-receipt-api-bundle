@@ -1,6 +1,6 @@
 <?php
 
-namespace Reinhurd\FnsQrReceiptApiBundle\Service\helpers;
+namespace Reinhurd\FnsQrReceiptApiBundle\Service\Helpers;
 
 use DOMDocument;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidResponseDataException;
