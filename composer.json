@@ -11,6 +11,9 @@
       "Reinhurd\\FnsQrReceiptApiBundle\\": "src/"
     }
   },
+  "scripts": {
+    "test": "./vendor/bin/phpunit --bootstrap vendor/autoload.php src/tests/"
+  },
   "license": "MIT",
   "authors": [
     {
