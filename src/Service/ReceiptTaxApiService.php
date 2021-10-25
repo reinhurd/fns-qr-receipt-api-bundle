@@ -48,7 +48,7 @@ class ReceiptTaxApiService
             ->httpClientRequestService
             ->curlRequest(
                 $this->getBodyTemporaryToken(),
-                self::CONTENT_TYPE_HEADER,
+                [self::CONTENT_TYPE_HEADER],
                 $this->apiAuthUrl
             );
         $tempToken = $this->xmlHelper->parseXMLByTag($responseWithTempToken, self::XML_TAG_TOKEN);
