@@ -10,9 +10,10 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 class ReceiptTaxApiService
 {
-    const HTTP_CODE_OK = 200;
-    const LIMIT_LOOP_RUNS_FOR_ONE_REQUEST = 10;
-    const LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS = 5;
+    private const CONTENT_TYPE_HEADER = "Content-Type: text/xml";
+    private const HTTP_CODE_OK = 200;
+    private const LIMIT_LOOP_RUNS_FOR_ONE_REQUEST = 10;
+    private const LIMIT_WAIT_TIME_BETWEEN_LOOP_RUN_SECONDS = 5;
     const PROCESSING_STATUS = 'PROCESSING';
     const XML_TAG_TOKEN = 'Token';
     const XML_TAG_MESSAGE_ID = 'MessageId';
@@ -43,12 +44,11 @@ class ReceiptTaxApiService
 
     public function getReceiptInfo(ReceiptRequestDTO $receiptData): array
     {
-        $headerForToken = ["Content-Type: text/xml"];
         $responseWithTempToken = $this
             ->httpClientRequestService
             ->curlRequest(
                 $this->getBodyTemporaryToken(),
-                $headerForToken,
+                self::CONTENT_TYPE_HEADER,
                 $this->apiAuthUrl
             );
         $tempToken = $this->xmlHelper->parseXMLByTag($responseWithTempToken, self::XML_TAG_TOKEN);
@@ -56,7 +56,7 @@ class ReceiptTaxApiService
         $headerWithToken =[
             "FNS-OpenApi-Token: {$tempToken}",
             "FNS-OpenApi-UserToken: {$this->apiMasterToken}",
-            "Content-Type: text/xml"
+            self::CONTENT_TYPE_HEADER
         ];
 
         $responseWithMessageId = $this
