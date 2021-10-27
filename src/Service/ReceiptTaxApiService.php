@@ -113,7 +113,7 @@ class ReceiptTaxApiService
 
         //final validate after end of loops run
         if (!$this->checkProcessingStatus($responseAboutReceipt)) {
-            //todo for case with long processing receipt we need queue service or else
+            //todo make queue service
             throw new RequestStillProcessingException();
         }
 
