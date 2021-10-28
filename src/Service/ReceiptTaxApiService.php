@@ -5,6 +5,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestedReceiptNotExistException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestStillProcessingException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Helpers\XMLHelper;
+use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptQueueRequestDTO;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
@@ -27,16 +28,19 @@ class ReceiptTaxApiService
     private $apiMasterToken;
     private $httpClientRequestService;
     private $parameterBag;
+    private $queueService;
     private $xmlHelper;
 
     public function __construct(
         HttpClientRequestService $httpClientRequestService,
         ParameterBagInterface $parameterBag,
+        QueueFileService $queueService,
         XMLHelper $xmlHelper
     ) {
         $this->httpClientRequestService = $httpClientRequestService;
         $this->parameterBag = $parameterBag;
         $this->xmlHelper = $xmlHelper;
+        $this->queueService = $queueService;
         $this->apiAuthUrl = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.api.auth_url');
         $this->apiRequestUrl = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.api.request_url');
         $this->apiMasterToken = $this->parameterBag->get('reinhurd_fns_qr_receipt_api.master_token');
@@ -71,7 +75,12 @@ class ReceiptTaxApiService
 
         $bodyForRequestByMessageId = $this->getBodyWithMessageIdFinalRequest($messageId);
 
-        $responseAboutReceipt = $this->loopRequestAboutReceipt($bodyForRequestByMessageId, $headerWithToken);
+        try {
+            $responseAboutReceipt = $this->loopRequestAboutReceipt($bodyForRequestByMessageId, $headerWithToken);
+        } catch (RequestStillProcessingException $exception) {
+            $this->queueService->saveNotProcessingRequest(new ReceiptQueueRequestDTO($receiptData, $messageId));
+        }
+
         if (!$this->validateReceiptExists($responseAboutReceipt)) {
             //todo save info from fns about requested receipt
             throw new RequestedReceiptNotExistException();
@@ -79,6 +88,11 @@ class ReceiptTaxApiService
         $responceWithReceiptInfo = $this->xmlHelper->parseXMLByTag($responseAboutReceipt, self::XML_TAG_TICKET);
 
         return json_decode($responceWithReceiptInfo, true);
+    }
+
+    public function requestNotProcessingReceipt()
+    {
+        //todo create this method and insert into controller
     }
 
     private function validateReceiptExists(string $receiptResonse): bool
@@ -113,7 +127,6 @@ class ReceiptTaxApiService
 
         //final validate after end of loops run
         if (!$this->checkProcessingStatus($responseAboutReceipt)) {
-            //todo make queue service
             throw new RequestStillProcessingException();
         }
 

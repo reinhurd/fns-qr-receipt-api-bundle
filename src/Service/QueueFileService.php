@@ -7,12 +7,13 @@ use Reinhurd\FnsQrReceiptApiBundle\Service\Interfaces\QueueInterface;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptQueueRequestDTO;
 
 //todo make connection to DB!
-class QueueService implements QueueInterface
+class QueueFileService implements QueueInterface
 {
     private const SEPARATOR_CSV = ';';
     private $fileStream;
     public function __construct(string $filename)
     {
+        //todo move file operation to file helper
         $this->filename = $filename;
         $this->fileStream = fopen($this->filename, 'a');
         if ($this->fileStream === false) {

@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Helpers\XMLHelper;
 use Reinhurd\FnsQrReceiptApiBundle\Service\HttpClientRequestService;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
+use Reinhurd\FnsQrReceiptApiBundle\Service\QueueFileService;
 use Reinhurd\FnsQrReceiptApiBundle\Service\ReceiptTaxApiService;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
@@ -16,6 +17,7 @@ class ReceiptTaxApiServiceTest extends TestCase
     private $httpClientRequestService;
     private $parameterBag;
     private $xmlHelper;
+    private $queueService;
 
     public function setUp(): void
     {
@@ -25,10 +27,12 @@ class ReceiptTaxApiServiceTest extends TestCase
         $this->parameterBag = $this->createMock(ParameterBagInterface::class);
         $this->xmlHelper = $this->createMock(XMLHelper::class);
         $this->parameterBag->expects(self::any())->method('get')->willReturn(self::STUB_DATA);
+        $this->queueService = $this->createMock(QueueFileService::class);
 
         $this->service = new ReceiptTaxApiService(
             $this->httpClientRequestService,
             $this->parameterBag,
+            $this->queueService,
             $this->xmlHelper
         );
     }
