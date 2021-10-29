@@ -10,9 +10,14 @@ use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptQueueRequestDTO;
 class QueueFileService implements QueueInterface
 {
     private const SEPARATOR_CSV = ';';
+    private const DEFAULT_FILE = 'Unprocessed_entities.csv';
+
     private $fileStream;
-    public function __construct(string $filename)
+    public function __construct(string $filename = null)
     {
+        if (empty($filename)) {
+            $filename = self::DEFAULT_FILE;
+        }
         //todo move file operation to file helper
         $this->filename = $filename;
         $this->fileStream = fopen($this->filename, 'a');

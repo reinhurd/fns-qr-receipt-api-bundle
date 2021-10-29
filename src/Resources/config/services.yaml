@@ -4,4 +4,5 @@ parameters:
   reinhurd_fns_qr_receipt_api.master_token: '/*YOUR MASTER TOKEN HERE*/'
   reinhurd_fns_qr_receipt_api.proxy.enable: false
   reinhurd_fns_qr_receipt_api.proxy.settings: '127.0.0.1:1337'
+  reinhurd_fns_qr_receipt_api.queue.file_enabled: false
 

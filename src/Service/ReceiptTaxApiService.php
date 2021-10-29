@@ -78,7 +78,9 @@ class ReceiptTaxApiService
         try {
             $responseAboutReceipt = $this->loopRequestAboutReceipt($bodyForRequestByMessageId, $headerWithToken);
         } catch (RequestStillProcessingException $exception) {
-            $this->queueService->saveNotProcessingRequest(new ReceiptQueueRequestDTO($receiptData, $messageId));
+            if ($this->parameterBag->get('reinhurd_fns_qr_receipt_api.queue.file_enabled')) {
+                $this->queueService->saveNotProcessingRequest(new ReceiptQueueRequestDTO($receiptData, $messageId));
+            }
         }
 
         if (!$this->validateReceiptExists($responseAboutReceipt)) {
