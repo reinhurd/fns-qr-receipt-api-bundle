@@ -5,6 +5,7 @@ namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\InvalidFileException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Interfaces\QueueInterface;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptQueueRequestDTO;
+use Symfony\Component\Filesystem\Filesystem;
 
 //todo make connection to DB!
 class QueueFileService implements QueueInterface
@@ -13,17 +14,21 @@ class QueueFileService implements QueueInterface
     private const DEFAULT_FILE = 'Unprocessed_entities.csv';
 
     private $fileStream;
-    public function __construct(string $filename = null)
-    {
+    private $filesystem;
+
+    public function __construct(
+        Filesystem $filesystem,
+        string $filename = null
+    ) {
+        $this->filesystem = $filesystem;
+
         if (empty($filename)) {
             $filename = self::DEFAULT_FILE;
         }
-        //todo move file operation to file helper
-        $this->filename = $filename;
-        $this->fileStream = fopen($this->filename, 'a');
-        if ($this->fileStream === false) {
-            throw new InvalidFileException();
+        if (!$this->filesystem->exists($filename) === false) {
+            $this->filesystem->touch($filename);
         }
+        $this->fileStream = fopen($filename, 'a');
     }
 
     public function saveNotProcessingRequest(ReceiptQueueRequestDTO $request): void
