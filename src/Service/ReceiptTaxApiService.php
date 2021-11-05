@@ -2,6 +2,7 @@
 
 namespace Reinhurd\FnsQrReceiptApiBundle\Service;
 
+use Psr\Log\LoggerInterface;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestedReceiptNotExistException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Exception\RequestStillProcessingException;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Helpers\XMLHelper;
@@ -27,17 +28,20 @@ class ReceiptTaxApiService
     private $apiRequestUrl;
     private $apiMasterToken;
     private $httpClientRequestService;
+    private $logger;
     private $parameterBag;
     private $queueService;
     private $xmlHelper;
 
     public function __construct(
         HttpClientRequestService $httpClientRequestService,
+        LoggerInterface $logger,
         ParameterBagInterface $parameterBag,
         QueueFileService $queueService,
         XMLHelper $xmlHelper
     ) {
         $this->httpClientRequestService = $httpClientRequestService;
+        $this->logger = $logger;
         $this->parameterBag = $parameterBag;
         $this->xmlHelper = $xmlHelper;
         $this->queueService = $queueService;
@@ -84,7 +88,7 @@ class ReceiptTaxApiService
         }
 
         if (!$this->validateReceiptExists($responseAboutReceipt)) {
-            //todo save info from fns about requested receipt
+            $this->logger->info('Receipt is not valid: ' . $responseAboutReceipt);
             throw new RequestedReceiptNotExistException();
         }
         $responceWithReceiptInfo = $this->xmlHelper->parseXMLByTag($responseAboutReceipt, self::XML_TAG_TICKET);

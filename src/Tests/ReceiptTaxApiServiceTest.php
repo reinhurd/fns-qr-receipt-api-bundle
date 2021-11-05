@@ -3,6 +3,7 @@
 namespace Reinhurd\FnsQrReceiptApiBundle\Test;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Helpers\XMLHelper;
 use Reinhurd\FnsQrReceiptApiBundle\Service\HttpClientRequestService;
 use Reinhurd\FnsQrReceiptApiBundle\Service\Model\ReceiptRequestDTO;
@@ -15,6 +16,7 @@ class ReceiptTaxApiServiceTest extends TestCase
     private const STUB_DATA = '12345';
     private $service;
     private $httpClientRequestService;
+    private $logger;
     private $parameterBag;
     private $xmlHelper;
     private $queueService;
@@ -25,12 +27,15 @@ class ReceiptTaxApiServiceTest extends TestCase
 
         $this->httpClientRequestService = $this->createMock(HttpClientRequestService::class);
         $this->parameterBag = $this->createMock(ParameterBagInterface::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
         $this->xmlHelper = $this->createMock(XMLHelper::class);
         $this->parameterBag->expects(self::any())->method('get')->willReturn(self::STUB_DATA);
+        $this->logger->method('info');
         $this->queueService = $this->createMock(QueueFileService::class);
 
         $this->service = new ReceiptTaxApiService(
             $this->httpClientRequestService,
+            $this->logger,
             $this->parameterBag,
             $this->queueService,
             $this->xmlHelper
